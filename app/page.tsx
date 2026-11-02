@@ -54,7 +54,12 @@ export default function Home() {
     [user, setUser] = useState<User | null>(null),
     [accessToken, setAccessToken] = useState(""),
     [authReady, setAuthReady] = useState(false),
-    [now, setNow] = useState(Date.now());
+    [now, setNow] = useState(Date.now()),
+    [authEmail, setAuthEmail] = useState(""),
+    [authPassword, setAuthPassword] = useState(""),
+    [authMode, setAuthMode] = useState<"signin" | "signup">("signin"),
+    [authBusy, setAuthBusy] = useState(false),
+    [authError, setAuthError] = useState("");
   const viewRef = useRef<View | null>(null),
     token = useRef(""),
     refreshRef = useRef<() => void>(() => {}),
@@ -306,6 +311,37 @@ export default function Home() {
       pendingRef.current--;
     }
   }
+  async function submitEmailAuth() {
+    const client = supabase;
+    if (!client || !authEmail.trim() || !authPassword) {
+      setAuthError("Enter your email and password.");
+      return;
+    }
+    setAuthBusy(true);
+    setAuthError("");
+    try {
+      const { error } =
+        authMode === "signin"
+          ? await client.auth.signInWithPassword({
+              email: authEmail.trim(),
+              password: authPassword,
+            })
+          : await client.auth.signUp({
+              email: authEmail.trim(),
+              password: authPassword,
+              options: {
+                data: {
+                  full_name: authEmail.trim().split("@")[0].slice(0, 24),
+                },
+              },
+            });
+      if (error) setAuthError(error.message);
+    } catch (e) {
+      setAuthError(e instanceof Error ? e.message : "Request failed.");
+    } finally {
+      setAuthBusy(false);
+    }
+  }
   const me = view?.players.find((p) => p.id === view.you),
     game = view?.game,
     turn = game?.turn === view?.you;
@@ -362,19 +398,73 @@ export default function Home() {
           <h1>Sign in to take your seat.</h1>
           <p>
             Your games, wins, losses, and account requests stay with your Google
-            account.
+            account — or sign in directly with email below.
           </p>
-          <button
-            className="primary"
-            onClick={() =>
-              supabase!.auth.signInWithOAuth({
-                provider: "google",
-                options: { redirectTo: `${location.origin}/auth/callback` },
-              })
-            }
-          >
-            Continue with Google →
-          </button>
+          <div className="auth-methods">
+            <button
+              className="primary"
+              onClick={() =>
+                supabase!.auth.signInWithOAuth({
+                  provider: "google",
+                  options: { redirectTo: `${location.origin}/auth/callback` },
+                })
+              }
+            >
+              Continue with Google →
+            </button>
+            <form
+              className="email-auth"
+              onSubmit={(event) => {
+                event.preventDefault();
+                void submitEmailAuth();
+              }}
+            >
+              <div className="eyebrow">
+                {authMode === "signin" ? "DIRECT SIGN IN" : "CREATE ACCOUNT"}
+              </div>
+              <h2>
+                {authMode === "signin"
+                  ? "Sign in with email"
+                  : "Create an account"}
+              </h2>
+              <input
+                type="email"
+                autoComplete="email"
+                placeholder="you@example.com"
+                value={authEmail}
+                onChange={(event) => setAuthEmail(event.target.value)}
+                required
+              />
+              {authMode === "signup" && (
+                <input
+                  type="text"
+                  autoComplete="name"
+                  placeholder="Display name (optional)"
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                  maxLength={24}
+                />
+              )}
+              <input
+                type="password"
+                autoComplete={
+                  authMode === "signin" ? "current-password" : "new-password"
+                }
+                placeholder="Password"
+                value={authPassword}
+                onChange={(event) => setAuthPassword(event.target.value)}
+                required
+              />
+              {authError ? <p className="auth-error">{authError}</p> : null}
+              <button className="primary" type="submit" disabled={authBusy}>
+                {authBusy
+                  ? "Please wait…"
+                  : authMode === "signin"
+                    ? "Sign in"
+                    : "Create account"}
+              </button>
+            </form>
+          </div>
         </section>
       ) : !view ? (
         <>

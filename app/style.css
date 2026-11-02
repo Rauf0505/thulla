@@ -20,6 +20,29 @@
   width: 100%;
   padding: 15px;
 }
+.auth-methods {
+  margin-top: 25px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.auth-methods .primary {
+  margin-top: 0;
+}
+.email-auth {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.email-auth h2 {
+  font-size: 24px;
+  margin: 0;
+}
+.auth-error {
+  color: #a13b2f;
+  font-size: 13px;
+  margin: 0;
+}
 .account-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
