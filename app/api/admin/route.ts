@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { authenticatedUser } from "../../../src/server-auth";
-import { db } from "../../../src/db";
+import { db, ensureBootstrapped } from "../../../src/db";
 export const runtime = "nodejs";
 async function admin(request: NextRequest) {
   const user = await authenticatedUser(
     (request.headers.get("authorization") || "").replace(/^Bearer\s+/i, ""),
   );
+  await ensureBootstrapped();
   const roles =
     await db()`select role from public.user_roles where user_id=${user.id}`;
   const role = String(roles[0]?.role);

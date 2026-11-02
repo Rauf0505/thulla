@@ -8,7 +8,7 @@ Production build and TypeScript check passed. Eleven engine tests passed, includ
 
 `npm test`: engine fixtures cover 3–8 player deals, opening off-suit exception, mandatory following, rejection immutability, immediate Thulla, final-card pickup, old-waste draw and forced lead, simultaneous two-player finishes, drawn-lead Thulla shortcut, hand transfer, and seeded bot games. Across 72 complete games, assert 52 cards and unique ownership after every transition.
 
-`npm run typecheck` and `npm run build` verify compilation. Browser automation checks mobile viewport overflow, waiting room and bot game flow, and eight-seat layouts. Protocol integration exercises duplicate IDs, stale versions, reconnect identity, privacy, and health. These checks do not substitute for real iOS/Android installation tests.
+`npm run typecheck` and `npm run build` verify compilation. Browser automation checks mobile viewport overflow, waiting room and bot game flow, and eight-seat layouts. The HTTP game API’s duplicate IDs, stale versions, reconnect identity, privacy, and health checks can be exercised against a configured project. These checks do not substitute for real iOS/Android installation tests.
 
 ## Manual release gates
 

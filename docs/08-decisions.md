@@ -4,7 +4,7 @@ Reviewed 2026-10-17.
 
 - Pagat Getaway: https://www.pagat.com/inflation/getaway.html — selected baseline, especially opening discard, retaining power, hand-taking and two-player endings.
 - Bhabhi variants: https://bhabhi.asia/variants — household variations exist; not runtime-selectable in v1.
-- Next.js custom server: https://nextjs.org/docs/app/guides/custom-server — persistent Node server required by chosen WebSocket architecture; no standalone output mode.
+- Next.js route handlers and serverless deployment: https://vercel.com/docs/frameworks/nextjs — selected after the initial custom WebSocket server proved incompatible with Vercel.
 
 ## Confirmed choices
 
@@ -16,4 +16,4 @@ Strict clockwise opening; reject illegal actions rather than penalties; fixed fi
 
 ## Implementation defaults and deviations
 
-WebSocket commands serve authenticated room operations; HTTP exposes account/admin APIs, health, and Next pages. Supabase PostgreSQL stores snapshots, events, match history, statistics, requests, and audit records. Manual device installation/accessibility and production capacity review remain unverified until performed. Fonts have system fallbacks when the optional Google Fonts request is unavailable.
+HTTP game commands serve authenticated room operations; HTTP also exposes account/admin APIs, health, and Next pages. Supabase PostgreSQL stores snapshots, events, presence, match history, statistics, requests, and audit records. Manual device installation/accessibility and production capacity review remain unverified until performed. Fonts have system fallbacks when the optional Google Fonts request is unavailable.

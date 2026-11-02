@@ -1,9 +1,14 @@
 import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
+import { loadEnvFile } from "node:process";
 import postgres from "postgres";
+for (const file of [".env.local", ".env"])
+  try {
+    loadEnvFile(file);
+  } catch {}
 const url = process.env.DATABASE_URL;
 if (!url) throw Error("DATABASE_URL is required.");
-const sql = postgres(url, { ssl: "require", max: 1 });
+const sql = postgres(url, { ssl: "require", max: 1, prepare: false });
 const dir = join(process.cwd(), "supabase", "migrations");
 await sql`create table if not exists public.schema_migrations (name text primary key, applied_at timestamptz not null default now())`;
 for (const name of (await readdir(dir))

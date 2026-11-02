@@ -13,6 +13,7 @@ function supabase() {
 export async function authenticatedUser(
   accessToken: string,
 ): Promise<AuthUser> {
+  if (!accessToken) throw Error("Sign in required.");
   const { data, error } = await supabase().auth.getUser(accessToken);
   if (error || !data.user)
     throw Error("Your sign-in has expired. Please sign in again.");

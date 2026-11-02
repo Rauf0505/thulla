@@ -4,6 +4,10 @@ import type { View } from "../src/protocol";
 import { browserId } from "../src/browser-id";
 import { supabase } from "../src/supabase-browser";
 import type { User } from "@supabase/supabase-js";
+const requestSignal = () =>
+  typeof AbortSignal.timeout === "function"
+    ? AbortSignal.timeout(8000)
+    : undefined;
 const symbols: Record<string, string> = { S: "♠", H: "♥", D: "♦", C: "♣" };
 function Card({
   card,
@@ -51,8 +55,11 @@ export default function Home() {
     [accessToken, setAccessToken] = useState(""),
     [authReady, setAuthReady] = useState(false),
     [now, setNow] = useState(Date.now());
-  const socket = useRef<WebSocket | null>(null),
-    token = useRef("");
+  const viewRef = useRef<View | null>(null),
+    token = useRef(""),
+    refreshRef = useRef<() => void>(() => {}),
+    syncRef = useRef<() => void>(() => {}),
+    pendingRef = useRef(0);
   useEffect(() => {
     if (!rules) return;
     const previous = document.activeElement as HTMLElement;
@@ -111,67 +118,185 @@ export default function Home() {
     return () => subscription.unsubscribe();
   }, []);
   useEffect(() => {
-    if (!accessToken) return;
+    const auth = supabase;
+    if (!auth || !accessToken) return;
+    const client = auth;
     token.current = accessToken;
     setName(
       String(user?.user_metadata.full_name || user?.user_metadata.name || ""),
     );
     setCode(new URLSearchParams(location.search).get("room") || "");
     let stopped = false,
-      timer: ReturnType<typeof setTimeout>;
-    function connect() {
-      const ws = new WebSocket(
-        `${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/ws`,
-      );
-      socket.current = ws;
-      ws.onopen = () => {
-        setStatus("Connected");
-        ws.send(JSON.stringify({ type: "resume", token: token.current }));
-      };
-      ws.onmessage = (e) => {
-        const m = JSON.parse(e.data);
-        if (m.type === "state") {
-          setView(m.view);
-          setSelected("");
-          setError("");
-        }
-        if (m.type === "left") {
-          setView(null);
-          setSelected("");
-          setError("");
-        }
-        if (m.type === "error") setError(m.message);
-      };
-      ws.onclose = () => {
-        setStatus("Reconnecting");
-        if (!stopped) timer = setTimeout(connect, 1500);
-      };
+      inFlight = false,
+      again = false,
+      channelCode = "",
+      tick: ReturnType<typeof setTimeout> | undefined,
+      channel: ReturnType<typeof auth.channel> | null = null;
+
+    function setRoomChannel(code?: string) {
+      if ((code || "") === channelCode) return;
+      if (channel) void client.removeChannel(channel);
+      channel = null;
+      channelCode = code || "";
+      if (!code) return;
+      channel = client
+        .channel(`room:${code}`, { config: { broadcast: { self: false } } })
+        .on("broadcast", { event: "update" }, () => {
+          if (document.visibilityState === "visible") void refresh();
+        })
+        .subscribe();
     }
-    connect();
+
+    function scheduleTick() {
+      if (tick) clearTimeout(tick);
+      const game = viewRef.current?.game;
+      if (!game || game.phase === "finished") return;
+      tick = setTimeout(
+        () => {
+          if (document.visibilityState === "visible") void refresh();
+        },
+        Math.max(250, game.deadline - Date.now() + 250),
+      );
+    }
+
+    function apply(next: View | null) {
+      const previous = viewRef.current;
+      if (
+        next &&
+        previous &&
+        next.code === previous.code &&
+        next.version < previous.version
+      )
+        return;
+      if (!next && previous && pendingRef.current > 0) return;
+      viewRef.current = next;
+      setView(next);
+      setRoomChannel(next?.code);
+      if (!previous || !next || previous.version !== next.version) {
+        setSelected("");
+        setError("");
+      }
+      scheduleTick();
+    }
+
+    async function refresh() {
+      if (stopped) return;
+      if (inFlight) {
+        again = true;
+        return;
+      }
+      inFlight = true;
+      again = false;
+      try {
+        const code = viewRef.current?.code;
+        const response = await fetch(
+          `/api/game/state${code ? `?code=${encodeURIComponent(code)}` : ""}`,
+          {
+            headers: { Authorization: `Bearer ${token.current}` },
+            cache: "no-store",
+            signal: requestSignal(),
+          },
+        );
+        if (stopped) return;
+        const data = (await response.json()) as {
+          view?: View | null;
+          error?: string;
+        };
+        if (!response.ok) {
+          setStatus("Reconnecting");
+          setError(data.error || "Request failed.");
+          return;
+        }
+        if ((viewRef.current?.code || "") !== (code || "")) return;
+        setStatus("Connected");
+        apply(data.view ?? null);
+      } catch {
+        if (stopped) return;
+        setStatus("Reconnecting");
+      } finally {
+        inFlight = false;
+        if (again && !stopped) void refresh();
+      }
+    }
+
+    refreshRef.current = () => void refresh();
+    syncRef.current = () => apply(viewRef.current);
+    void refresh();
+    const poll = setInterval(() => {
+      if (document.visibilityState === "visible") void refresh();
+    }, 10_000);
+    const visible = () => {
+      if (document.visibilityState === "visible") void refresh();
+    };
+    document.addEventListener("visibilitychange", visible);
     const clock = setInterval(() => setNow(Date.now()), 500);
     if (window.isSecureContext && "serviceWorker" in navigator)
       navigator.serviceWorker.register("/sw.js").catch(() => {});
     return () => {
       stopped = true;
-      clearTimeout(timer);
+      refreshRef.current = () => {};
+      syncRef.current = () => {};
+      if (tick) clearTimeout(tick);
+      clearInterval(poll);
       clearInterval(clock);
-      socket.current?.close();
+      document.removeEventListener("visibilitychange", visible);
+      if (channel) void client.removeChannel(channel);
     };
   }, [accessToken, user]);
-  function send(type: string, extra: Record<string, unknown> = {}) {
-    if (socket.current?.readyState !== 1) {
-      setError("Connection lost. Reconnecting automatically.");
+  async function send(type: string, extra: Record<string, unknown> = {}) {
+    if (!token.current) {
+      setError("Sign in to play.");
       return;
     }
-    socket.current.send(
-      JSON.stringify({
-        type,
-        token: token.current,
-        id: browserId(),
-        version: view?.version,
-        ...extra,
-      }),
-    );
+    pendingRef.current++;
+    try {
+      const response = await fetch("/api/game/command", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token.current}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          type,
+          id: browserId(),
+          version: viewRef.current?.version,
+          code: viewRef.current?.code,
+          ...extra,
+        }),
+        signal: requestSignal(),
+      });
+      const data = (await response.json()) as {
+        view?: View;
+        left?: boolean;
+        error?: string;
+      };
+      if (!response.ok) throw Error(data.error || "Request failed.");
+      setStatus("Connected");
+      if (data.left) {
+        viewRef.current = null;
+        setView(null);
+        setSelected("");
+        setError("");
+      } else if (data.view) {
+        viewRef.current = data.view;
+        setView(data.view);
+        setSelected("");
+        setError("");
+      }
+      syncRef.current();
+    } catch (error) {
+      const message =
+        error instanceof Error &&
+        /fetch|network|abort|timeout/i.test(error.message)
+          ? "Connection lost. Please try again."
+          : error instanceof Error
+            ? error.message
+            : "Request failed.";
+      setError(message);
+      refreshRef.current();
+    } finally {
+      pendingRef.current--;
+    }
   }
   const me = view?.players.find((p) => p.id === view.you),
     game = view?.game,

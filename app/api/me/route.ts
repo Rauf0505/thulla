@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { authenticatedUser } from "../../../src/server-auth";
-import { db } from "../../../src/db";
+import { db, ensureBootstrapped } from "../../../src/db";
 export const runtime = "nodejs";
 async function current(request: NextRequest) {
   const auth = request.headers.get("authorization") || "";
@@ -9,6 +9,7 @@ async function current(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     const user = await current(request);
+    await ensureBootstrapped();
     const sql = db();
     const [profile, stats, matches, requests, role] = await Promise.all([
       sql`select id,display_name,avatar_url,status,created_at from public.profiles where id=${user.id}`,

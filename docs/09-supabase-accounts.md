@@ -17,4 +17,4 @@ Finished games insert match participants and a stat-ledger row in one database t
 
 ## Operations
 
-The `/account` page provides profile edits, match history, statistics, data-export/deletion/privacy requests, recovery, and appeals. `/admin` requires an `admin` or `moderator` role and provides account status changes, corrections, open-request review, and audit history. Suspending an account blocks new WebSocket actions on the next command or reconnect.
+The `/account` page provides profile edits, match history, statistics, data-export/deletion/privacy requests, recovery, and appeals. `/admin` requires an `admin` or `moderator` role and provides account status changes, corrections, open-request review, and audit history. Suspending an account blocks new game API actions on the next request.

@@ -38,7 +38,7 @@ export type Command = {
     | "play"
     | "take"
     | "rematch";
-  token: string;
+  token?: string;
   id?: string;
   version?: number;
   name?: string;
