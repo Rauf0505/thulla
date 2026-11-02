@@ -28,20 +28,46 @@
 }
 .auth-methods .primary {
   margin-top: 0;
+  justify-content: center;
 }
 .email-auth {
-  display: flex;
-  flex-direction: column;
+  display: grid;
   gap: 12px;
+  max-width: 100%;
 }
 .email-auth h2 {
   font-size: 24px;
   margin: 0;
+  font-family: "Playfair Display", serif;
+}
+.email-auth button.primary {
+  margin-top: 0;
+  justify-self: stretch;
 }
 .auth-error {
   color: #a13b2f;
   font-size: 13px;
   margin: 0;
+}
+.auth-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  overflow: hidden;
+  background: #fbfaf6;
+}
+.auth-tabs button {
+  min-height: 44px;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 13px;
+}
+.auth-tabs button.active {
+  background: var(--ink);
+  color: #fffdf5;
 }
 .account-grid {
   display: grid;

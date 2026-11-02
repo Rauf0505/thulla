@@ -410,8 +410,35 @@ export default function Home() {
                 })
               }
             >
-              Continue with Google →
+              <span>Continue with Google</span>
             </button>
+            <div className="divider">or</div>
+            <div className="auth-tabs" role="group" aria-label="Sign in method">
+              <button
+                type="button"
+                className={
+                  authMode === "signin" ? "auth-tab active" : "auth-tab"
+                }
+                onClick={() => {
+                  setAuthMode("signin");
+                  setAuthError("");
+                }}
+              >
+                Sign in
+              </button>
+              <button
+                type="button"
+                className={
+                  authMode === "signup" ? "auth-tab active" : "auth-tab"
+                }
+                onClick={() => {
+                  setAuthMode("signup");
+                  setAuthError("");
+                }}
+              >
+                Create account
+              </button>
+            </div>
             <form
               className="email-auth"
               onSubmit={(event) => {
@@ -419,13 +446,10 @@ export default function Home() {
                 void submitEmailAuth();
               }}
             >
-              <div className="eyebrow">
-                {authMode === "signin" ? "DIRECT SIGN IN" : "CREATE ACCOUNT"}
-              </div>
               <h2>
                 {authMode === "signin"
-                  ? "Sign in with email"
-                  : "Create an account"}
+                  ? "Welcome back to your table"
+                  : "Create your account"}
               </h2>
               <input
                 type="email"
@@ -457,11 +481,13 @@ export default function Home() {
               />
               {authError ? <p className="auth-error">{authError}</p> : null}
               <button className="primary" type="submit" disabled={authBusy}>
-                {authBusy
-                  ? "Please wait…"
-                  : authMode === "signin"
-                    ? "Sign in"
-                    : "Create account"}
+                <span>
+                  {authBusy
+                    ? "Please wait…"
+                    : authMode === "signin"
+                      ? "Sign in"
+                      : "Create account"}
+                </span>
               </button>
             </form>
           </div>
