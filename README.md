@@ -47,7 +47,7 @@ docker build -t thulla .
 docker run --env-file .env.local -p 3000:3000 thulla
 ```
 
-Put HTTPS in front of the container. `/api/health` is the health endpoint. Multiple instances are safe because room mutations take a PostgreSQL row lock; there is no in-memory room ownership.
+Use the **session pooler** connection string (port `5432`) for `DATABASE_URL` on IPv4-only hosts, or the direct connection if the host has IPv6 (or the Supabase project has the IPv4 add-on). Put HTTPS in front of the container. `/api/health` is the health endpoint. Multiple instances are safe because room mutations take a PostgreSQL row lock; there is no in-memory room ownership.
 
 ## Documentation
 

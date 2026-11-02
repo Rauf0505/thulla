@@ -32,6 +32,8 @@ npm run db:migrate
 
 The script loads `.env.local` and `.env`, records applied files in `schema_migrations`, and applies only new migrations. Vercel builds do not run migrations.
 
+If `npm run db:migrate` fails with `ENOTFOUND` for `db.<project-ref>.supabase.co`, that host is IPv6-only and your network has no IPv6 route. Use the **session pooler** (port `5432`) connection string from Supabase → Connect for the migration, or the transaction pooler (port `6543`). The same applies to the Vercel runtime: use the transaction pooler.
+
 The latest migration adds `public.room_presence`, used for connection status and away-player takeover.
 
 ## 3. Supabase authentication URLs
