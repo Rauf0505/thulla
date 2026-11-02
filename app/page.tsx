@@ -331,7 +331,9 @@ export default function Home() {
               password: authPassword,
               options: {
                 data: {
-                  full_name: authEmail.trim().split("@")[0].slice(0, 24),
+                  full_name: (
+                    name.trim() || authEmail.trim().split("@")[0]
+                  ).slice(0, 24),
                 },
               },
             });
