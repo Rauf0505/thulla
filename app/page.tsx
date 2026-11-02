@@ -99,12 +99,19 @@ export default function Home() {
       setAuthReady(true);
       return;
     }
+    const clear = () => {
+      viewRef.current = null;
+      setView(null);
+      setSelected("");
+      setError("");
+    };
     const update = async () => {
       const {
         data: { session },
       } = await auth.auth.getSession();
       setUser(session?.user ?? null);
       setAccessToken(session?.access_token ?? "");
+      if (!session) clear();
       setAuthReady(true);
     };
     update();
@@ -113,6 +120,7 @@ export default function Home() {
     } = auth.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
       setAccessToken(session?.access_token ?? "");
+      if (!session) clear();
       setAuthReady(true);
     });
     return () => subscription.unsubscribe();
